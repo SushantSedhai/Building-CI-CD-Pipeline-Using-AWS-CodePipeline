@@ -1,0 +1,107 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  BucketName:
+    Type: String
+    Default: input-bucket-code-pipeline-demo
+Resources:
+  CodeDeployEC2TrustRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: CodeDeployEC2TrustRole
+      Description: Allows Amazon EC2 to work on your behalf
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: CodeDeployS3Permissions-Policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Action:
+                  - 's3:Get*'
+                  - 's3:List*'
+                Effect: Allow
+                Resource: '*'
+  CodeDeployServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: CodeDeployServiceRole
+      Description: IAM role for CodeDeploy
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codedeploy.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+  CodeDeployEC2InstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Path: /
+      Roles:
+        - !Ref CodeDeployEC2TrustRole
+  CodeDeployUser:
+    Type: 'AWS::IAM::User'
+    Properties:
+      UserName: suleyman
+      Policies:
+        - PolicyName: CodeDeployAccessPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: CodeDeployAccessPolicy
+                Effect: Allow
+                Action:
+                  - 'cloudformation:*'
+                  - 'autoscaling:*'
+                  - 'codedeploy:*'
+                  - 'ec2:*'
+                  - 'lambda:*'
+                  - 'ecs:*'
+                  - 'elasticloadbalancing:*'
+                  - 'iam:AddRoleToInstanceProfile'
+                  - 'iam:AttachRolePolicy'
+                  - 'iam:CreateInstanceProfile'
+                  - 'iam:CreateRole'
+                  - 'iam:DeleteInstanceProfile'
+                  - 'iam:DeleteRole'
+                  - 'iam:DeleteRolePolicy'
+                  - 'iam:GetInstanceProfile'
+                  - 'iam:GetRole'
+                  - 'iam:GetRolePolicy'
+                  - 'iam:ListInstanceProfilesForRole'
+                  - 'iam:ListRolePolicies'
+                  - 'iam:ListRoles'
+                  - 'iam:PutRolePolicy'
+                  - 'iam:RemoveRoleFromInstanceProfile'
+                  - 's3:*'
+                  - 'ssm:*'
+                Resource: '*'
+              - Sid: CodeDeployRolePolicy
+                Effect: Allow
+                Action:
+                  - 'iam:PassRole'
+                Resource: 'arn:aws:iam::126913486655:role/CodeDeployServiceRole'
+  S3Bucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: !Ref BucketName
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+Outputs:
+  MainBucketName:
+    Description: Name of the main bucket
+    Value: !Ref S3Bucket
